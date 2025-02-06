@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>청소구역 배정</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #result { margin-top: 20px; font-size: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>청소구역 배정</h2>
+    <button onclick="assignArea()">청소구역 받기</button>
+    <div id="result"></div>
+
+    <script>
+        let areas = {
+            "밥순이": 1, "음식물쓰레기": 2, "분리수거": 6, "커피자판기": 3, "회의실": 1,
+            "스튜디오": 2, "창고": 2, "냉장고": 1, "비품채우기": 1, "분쇄기": 1,
+            "바닥쓸기": 3, "바닥닦기": 3, "제방기": 1, "식당": 3, "물통비우기": 1,
+            "5층 테라스": 1
+        };
+        
+        function assignArea() {
+            let availableAreas = Object.keys(areas).filter(area => areas[area] > 0);
+            
+            if (availableAreas.length === 0) {
+                document.getElementById("result").innerText = "모든 구역이 배정되었습니다!";
+                return;
+            }
+            
+            let randomIndex = Math.floor(Math.random() * availableAreas.length);
+            let selectedArea = availableAreas[randomIndex];
+            areas[selectedArea] -= 1;
+            
+            document.getElementById("result").innerText = `당신의 청소구역: ${selectedArea}`;
+        }
+    </script>
+</body>
+</html>
