@@ -10,13 +10,14 @@
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
         button, input { padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer; }
-        #result { margin-top: 20px; font-size: 20px; font-weight: bold; }
+        #result, #assignments { margin-top: 20px; font-size: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
     <h2>청소구역 배정</h2>
     <input type="text" id="nameInput" placeholder="이름을 입력하세요" />
     <button onclick="assignArea()">청소구역 받기</button>
+    <button onclick="resetAreas()">리셋</button>
     <div id="result"></div>
 
     <script>
@@ -36,6 +37,22 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // 초기 데이터 설정
+        const initialAreas = {
+            "밥순이": 1, "음식물쓰레기": 2, "분리수거": 6, "커피자판기": 3, "회의실": 1,
+            "스튜디오": 2, "창고": 2, "냉장고": 1, "비품채우기": 1, "분쇄기": 1,
+            "바닥쓸기": 3, "바닥닦기": 3, "제방기": 1, "식당": 3, "물통비우기": 1,
+            "5층 테라스": 2
+        };
+
+        // 초기화 함수
+        db.ref("assignments").get().then((snapshot) => {
+            if (!snapshot.exists()) {
+                db.ref("assignments").set({});
+                console.log("assignments 초기화 완료");
+            }
+        });
+
         // 청소구역 배정 함수
         function assignArea() {
             const name = document.getElementById("nameInput").value.trim();
@@ -51,28 +68,35 @@
                     return;
                 }
 
-                // 청소구역 로직 (예시)
-                const areas = {
-                    "밥순이": 1,
-                    "음식물쓰레기": 2,
-                    "분리수거": 6
-                };
-                const availableAreas = Object.keys(areas).filter(area => areas[area] > 0);
+                db.ref("areas").once("value", (snapshot) => {
+                    let areas = snapshot.val() || initialAreas;
+                    let availableAreas = Object.keys(areas).filter(area => areas[area] > 0);
 
-                if (availableAreas.length === 0) {
-                    document.getElementById("result").innerText = "모든 구역이 배정되었습니다!";
-                    return;
-                }
+                    if (availableAreas.length === 0) {
+                        document.getElementById("result").innerText = "모든 구역이 배정되었습니다!";
+                        return;
+                    }
 
-                const randomIndex = Math.floor(Math.random() * availableAreas.length);
-                const selectedArea = availableAreas[randomIndex];
-                areas[selectedArea]--;
+                    const randomIndex = Math.floor(Math.random() * availableAreas.length);
+                    const selectedArea = availableAreas[randomIndex];
+                    areas[selectedArea]--;
 
-                // Firebase에 데이터 저장
-                assignments[name] = selectedArea;
-                db.ref("assignments").set(assignments);
-                document.getElementById("result").innerText = `${name}님의 청소구역은 ${selectedArea}입니다.`;
+                    assignments[name] = selectedArea;
+
+                    // Firebase에 데이터 저장
+                    db.ref("assignments").set(assignments);
+                    db.ref("areas").set(areas);
+
+                    document.getElementById("result").innerText = `${name}님의 청소구역은 ${selectedArea}입니다.`;
+                });
             });
+        }
+
+        // 리셋 함수
+        function resetAreas() {
+            db.ref("areas").set(initialAreas);
+            db.ref("assignments").set({});
+            document.getElementById("result").innerText = "청소구역이 초기화되었습니다!";
         }
     </script>
 </body>
