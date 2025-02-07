@@ -10,7 +10,8 @@
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
         button, input { padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer; }
-        #result, #assignments { margin-top: 20px; font-size: 20px; font-weight: bold; }
+        #result { margin-top: 20px; font-size: 20px; font-weight: bold; }
+        #assignments { margin-top: 30px; font-size: 18px; text-align: left; display: inline-block; }
     </style>
 </head>
 <body>
@@ -19,6 +20,10 @@
     <button onclick="assignArea()">청소구역 받기</button>
     <button onclick="resetAreas()">리셋</button>
     <div id="result"></div>
+    <div id="assignments">
+        <h3>배정 결과</h3>
+        <ul id="assignmentList"></ul>
+    </div>
 
     <script>
         // Firebase 설정
@@ -98,10 +103,19 @@
             db.ref("assignments").set({});
             document.getElementById("result").innerText = "청소구역이 초기화되었습니다!";
         }
+
+        // 실시간 업데이트: 배정 결과 표시
+        db.ref("assignments").on("value", (snapshot) => {
+            const assignments = snapshot.val() || {};
+            const assignmentList = document.getElementById("assignmentList");
+            assignmentList.innerHTML = "";
+
+            for (let name in assignments) {
+                const listItem = document.createElement("li");
+                listItem.innerText = `${name}: ${assignments[name]}`;
+                assignmentList.appendChild(listItem);
+            }
+        });
     </script>
 </body>
 </html>
-
-
-
-
