@@ -6,15 +6,17 @@
     <title>청소구역 배정</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
-        button { padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer; }
-        #result { margin-top: 20px; font-size: 20px; font-weight: bold; }
+        button, input { padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer; }
+        #result, #assignments { margin-top: 20px; font-size: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
     <h2>청소구역 배정</h2>
+    <input type="text" id="nameInput" placeholder="이름을 입력하세요" />
     <button onclick="assignArea()">청소구역 받기</button>
     <button onclick="resetAreas()">리셋</button>
     <div id="result"></div>
+    <div id="assignments"></div>
 
     <script>
         // 초기 청소구역 상태
@@ -25,24 +27,27 @@
             "5층 테라스": 1
         };
 
-        // 현재 청소구역 상태
+        // 현재 청소구역 상태 및 배정 목록
         let areas = { ...initialAreas };
+        let assignments = {}; // 이름과 배정된 구역 저장
 
         // 청소구역 배정 함수
         function assignArea() {
-            const userId = localStorage.getItem("userId");
-            const assignedArea = localStorage.getItem("assignedArea");
+            const name = document.getElementById("nameInput").value.trim();
 
-            // 이미 클릭한 사용자 확인
-            if (userId) {
-                document.getElementById("result").innerText = `이미 청소구역을 배정받았습니다! 배정된 구역: ${assignedArea}`;
+            if (!name) {
+                document.getElementById("result").innerText = "이름을 입력하세요!";
+                return;
+            }
+
+            if (assignments[name]) {
+                document.getElementById("result").innerText = `이미 배정받았습니다! 배정된 구역: ${assignments[name]}`;
                 return;
             }
 
             // 현재 배정 가능한 구역 목록 가져오기
             let availableAreas = Object.keys(areas).filter(area => areas[area] > 0);
 
-            // 배정 가능한 구역이 없을 경우 처리
             if (availableAreas.length === 0) {
                 document.getElementById("result").innerText = "모든 구역이 배정되었습니다!";
                 return;
@@ -52,28 +57,33 @@
             let randomIndex = Math.floor(Math.random() * availableAreas.length);
             let selectedArea = availableAreas[randomIndex];
 
-            // 선택한 구역의 남은 인원이 0인지 확인 후 처리
-            if (areas[selectedArea] <= 0) {
-                document.getElementById("result").innerText = "오류가 발생했습니다. 다시 시도해주세요.";
-                return;
-            }
-
             // 선택한 구역의 남은 인원을 줄임
             areas[selectedArea] -= 1;
 
-            // 배정된 사용자 정보 저장
-            localStorage.setItem("userId", "true");
-            localStorage.setItem("assignedArea", selectedArea);
+            // 배정된 정보 저장
+            assignments[name] = selectedArea;
+            document.getElementById("result").innerText = `${name}님의 청소구역: ${selectedArea}`;
 
-            document.getElementById("result").innerText = `당신의 청소구역: ${selectedArea}`;
+            // 배정 결과 갱신
+            updateAssignments();
+        }
+
+        // 배정 결과 업데이트 함수
+        function updateAssignments() {
+            const assignmentsDiv = document.getElementById("assignments");
+            assignmentsDiv.innerHTML = "<h3>배정 결과</h3>" +
+                Object.entries(assignments).map(([name, area]) => `<p>${name}: ${area}</p>`).join("");
         }
 
         // 리셋 함수
         function resetAreas() {
             areas = { ...initialAreas }; // 초기 상태로 복원
-            localStorage.clear(); // 로컬 스토리지 초기화
+            assignments = {}; // 배정 초기화
             document.getElementById("result").innerText = "청소구역이 초기화되었습니다!";
+            document.getElementById("assignments").innerHTML = ""; // 배정 결과 초기화
+            document.getElementById("nameInput").value = ""; // 입력값 초기화
         }
     </script>
 </body>
 </html>
+
