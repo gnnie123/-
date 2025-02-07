@@ -52,6 +52,12 @@
             let randomIndex = Math.floor(Math.random() * availableAreas.length);
             let selectedArea = availableAreas[randomIndex];
 
+            // 선택한 구역의 남은 인원이 0인지 확인 후 처리
+            if (areas[selectedArea] <= 0) {
+                document.getElementById("result").innerText = "오류가 발생했습니다. 다시 시도해주세요.";
+                return;
+            }
+
             // 선택한 구역의 남은 인원을 줄임
             areas[selectedArea] -= 1;
 
@@ -71,4 +77,3 @@
     </script>
 </body>
 </html>
-
