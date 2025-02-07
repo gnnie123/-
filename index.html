@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>청소구역 배정</title>
+    <!-- Firebase 라이브러리 -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
     <style>
@@ -37,7 +38,7 @@
         };
 
         // Firebase 초기화
-        firebase.initializeApp(firebaseConfig);
+        const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         // 초기 데이터 설정 (assignments가 없는 경우 빈 객체로 추가)
@@ -48,7 +49,6 @@
             }
         });
 
-        // 초기 청소구역 상태
         const initialAreas = {
             "밥순이": 1, "음식물쓰레기": 2, "분리수거": 6, "커피자판기": 3, "회의실": 1,
             "스튜디오": 2, "창고": 2, "냉장고": 1, "비품채우기": 1, "분쇄기": 1,
@@ -58,7 +58,6 @@
 
         function assignArea() {
             const name = document.getElementById("nameInput").value.trim();
-
             if (!name) {
                 document.getElementById("result").innerText = "이름을 입력하세요!";
                 return;
@@ -66,7 +65,6 @@
 
             db.ref("assignments").once("value", (snapshot) => {
                 let assignments = snapshot.val() || {};
-
                 if (assignments[name]) {
                     document.getElementById("result").innerText = `이미 배정받았습니다! 배정된 구역: ${assignments[name]}`;
                     return;
@@ -97,26 +95,12 @@
             });
         }
 
-        function updateAssignments(snapshot) {
-            const assignments = snapshot.val() || {};
-            const assignmentList = document.getElementById("assignmentList");
-            assignmentList.innerHTML = "";
-
-            Object.entries(assignments).forEach(([name, area]) => {
-                const listItem = document.createElement("li");
-                listItem.textContent = `${name}: ${area}`;
-                assignmentList.appendChild(listItem);
-            });
-        }
-
         function resetAreas() {
             db.ref("areas").set(initialAreas);
             db.ref("assignments").set({});
             document.getElementById("result").innerText = "청소구역이 초기화되었습니다!";
         }
-
-        // 실시간 데이터 업데이트 리스너
-        db.ref("assignments").on("value", updateAssignments);
     </script>
 </body>
 </html>
+
