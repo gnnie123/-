@@ -40,7 +40,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 초기 구역 설정 (총 29명)
         const initialAreas = {
             "밥순이": 1, "음식물쓰레기": 2, "분리수거": 4, "커피자판기": 3, "회의실": 1,
             "스튜디오": 2, "창고": 2, "냉장고": 1, "비품채우기": 1, "분쇄기": 1,
@@ -48,7 +47,7 @@
             "5층 테라스": 1
         };
 
-        // 데이터가 없다면 최초 1회 초기화
+        // 최초 1회만 초기화
         db.ref("assignments").get().then((snapshot) => {
             if (!snapshot.exists()) {
                 db.ref("assignments").set({});
@@ -57,7 +56,6 @@
             }
         });
 
-        // 청소구역 배정
         function assignArea() {
             const name = document.getElementById("nameInput").value.trim();
             if (!name) {
@@ -72,53 +70,82 @@
                     return;
                 }
 
+                if (Object.keys(assignments).length >= 29) {
+                    document.getElementById("result").innerText = "모든 인원이 배정되었습니다!";
+                    document.querySelector("button[onclick='assignArea()']").disabled = true;
+                    document.querySelector("button[onclick='assignArea()']").innerText = "배정 완료됨";
+                    return;
+                }
+
                 db.ref("areas").transaction((areas) => {
                     if (!areas) areas = initialAreas;
 
                     const availableAreas = Object.keys(areas).filter(area => areas[area] > 0);
-                    if (availableAreas.length === 0) return; // 모두 배정됨
+                    if (availableAreas.length === 0) return;
 
                     const randomIndex = Math.floor(Math.random() * availableAreas.length);
                     const selectedArea = availableAreas[randomIndex];
                     areas[selectedArea]--;
 
-                    // assignments 갱신은 트랜잭션 콜백에서 처리
                     assignments[name] = selectedArea;
                     db.ref("assignments").set(assignments);
 
                     return areas;
                 }, (error, committed, snapshot) => {
-                    if (error) {
-                        document.getElementById("result").innerText = "오류가 발생했습니다. 다시 시도해주세요.";
-                    } else if (!committed) {
-                        document.getElementById("result").innerText = "모든 구역이 배정되었습니다!";
-                    } else {
-                        const assignedArea = assignments[name];
-                        document.getElementById("result").innerText = `${name}님의 청소구역은 ${assignedArea}입니다.`;
+                    if (!committed || error) {
+                        document.getElementById("result").innerText = "배정 중 문제가 발생했습니다. 다시 시도해주세요.";
+                        return;
+                    }
+                    const assignedArea = assignments[name];
+                    document.getElementById("result").innerText = `${name}님의 청소구역은 ${assignedArea}입니다.`;
+
+                    if (Object.keys(assignments).length >= 29) {
+                        const assignBtn = document.querySelector("button[onclick='assignArea()']");
+                        assignBtn.disabled = true;
+                        assignBtn.innerText = "배정 완료됨";
                     }
                 });
             });
         }
 
-        // 리셋
         function resetAreas() {
             db.ref("areas").set(initialAreas);
             db.ref("assignments").set({});
             document.getElementById("result").innerText = "청소구역이 초기화되었습니다!";
+            document.querySelector("button[onclick='assignArea()']").disabled = false;
+            document.querySelector("button[onclick='assignArea()']").innerText = "청소구역 받기";
         }
 
-        // 실시간 배정 결과 업데이트
         db.ref("assignments").on("value", (snapshot) => {
             const assignments = snapshot.val() || {};
             const assignmentList = document.getElementById("assignmentList");
             assignmentList.innerHTML = "";
 
+            const areaCount = {};
             for (let name in assignments) {
+                const area = assignments[name];
+                areaCount[area] = (areaCount[area] || 0) + 1;
+
                 const listItem = document.createElement("li");
-                listItem.innerText = `${name}: ${assignments[name]}`;
+                listItem.innerText = `${name}: ${area}`;
                 assignmentList.appendChild(listItem);
+            }
+
+            const totalAssigned = Object.keys(assignments).length;
+            const totalCountItem = document.createElement("li");
+            totalCountItem.style.fontWeight = "bold";
+            totalCountItem.style.marginTop = "10px";
+            totalCountItem.innerText = `총 배정 인원: ${totalAssigned}명 / 29명`;
+            assignmentList.appendChild(totalCountItem);
+
+            // 자동으로 버튼 비활성화
+            if (totalAssigned >= 29) {
+                const assignBtn = document.querySelector("button[onclick='assignArea()']");
+                assignBtn.disabled = true;
+                assignBtn.innerText = "배정 완료됨";
             }
         });
     </script>
 </body>
 </html>
+
