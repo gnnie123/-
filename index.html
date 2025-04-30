@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>청소구역 배정</title>
-    <!-- Firebase SDK 로드 -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
@@ -38,11 +37,10 @@
             measurementId: "G-HE357MN11T"
         };
 
-        // Firebase 초기화
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 초기 데이터 설정
+        // 초기 구역 설정 (총 29명)
         const initialAreas = {
             "밥순이": 1, "음식물쓰레기": 2, "분리수거": 4, "커피자판기": 3, "회의실": 1,
             "스튜디오": 2, "창고": 2, "냉장고": 1, "비품채우기": 1, "분쇄기": 1,
@@ -50,15 +48,16 @@
             "5층 테라스": 1
         };
 
-        // 초기화 함수
+        // 데이터가 없다면 최초 1회 초기화
         db.ref("assignments").get().then((snapshot) => {
             if (!snapshot.exists()) {
                 db.ref("assignments").set({});
-                console.log("assignments 초기화 완료");
+                db.ref("areas").set(initialAreas);
+                console.log("데이터 초기화 완료");
             }
         });
 
-        // 청소구역 배정 함수
+        // 청소구역 배정
         function assignArea() {
             const name = document.getElementById("nameInput").value.trim();
             if (!name) {
@@ -66,45 +65,49 @@
                 return;
             }
 
-            db.ref("assignments").once("value", (snapshot) => {
+            db.ref("assignments").once("value").then(snapshot => {
                 let assignments = snapshot.val() || {};
                 if (assignments[name]) {
                     document.getElementById("result").innerText = `${name}님은 이미 배정받았습니다: ${assignments[name]}`;
                     return;
                 }
 
-                db.ref("areas").once("value", (snapshot) => {
-                    let areas = snapshot.val() || initialAreas;
-                    let availableAreas = Object.keys(areas).filter(area => areas[area] > 0);
+                db.ref("areas").transaction((areas) => {
+                    if (!areas) areas = initialAreas;
 
-                    if (availableAreas.length === 0) {
-                        document.getElementById("result").innerText = "모든 구역이 배정되었습니다!";
-                        return;
-                    }
+                    const availableAreas = Object.keys(areas).filter(area => areas[area] > 0);
+                    if (availableAreas.length === 0) return; // 모두 배정됨
 
                     const randomIndex = Math.floor(Math.random() * availableAreas.length);
                     const selectedArea = availableAreas[randomIndex];
                     areas[selectedArea]--;
 
+                    // assignments 갱신은 트랜잭션 콜백에서 처리
                     assignments[name] = selectedArea;
-
-                    // Firebase에 데이터 저장
                     db.ref("assignments").set(assignments);
-                    db.ref("areas").set(areas);
 
-                    document.getElementById("result").innerText = `${name}님의 청소구역은 ${selectedArea}입니다.`;
+                    return areas;
+                }, (error, committed, snapshot) => {
+                    if (error) {
+                        document.getElementById("result").innerText = "오류가 발생했습니다. 다시 시도해주세요.";
+                    } else if (!committed) {
+                        document.getElementById("result").innerText = "모든 구역이 배정되었습니다!";
+                    } else {
+                        const assignedArea = assignments[name];
+                        document.getElementById("result").innerText = `${name}님의 청소구역은 ${assignedArea}입니다.`;
+                    }
                 });
             });
         }
 
-        // 리셋 함수
+        // 리셋
         function resetAreas() {
             db.ref("areas").set(initialAreas);
             db.ref("assignments").set({});
             document.getElementById("result").innerText = "청소구역이 초기화되었습니다!";
         }
 
-        // 실시간 업데이트: 배정 결과 표시
+        // 실시간 배정 결과 업데이트
         db.ref("assignments").on("value", (snapshot) => {
             const assignments = snapshot.val() || {};
             const assignmentList = document.getElementById("assignmentList");
