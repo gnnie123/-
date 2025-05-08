@@ -70,7 +70,7 @@
                     return;
                 }
 
-                if (Object.keys(assignments).length >= 29) {
+                if (Object.keys(assignments).length >= 27) {
                     document.getElementById("result").innerText = "모든 인원이 배정되었습니다!";
                     document.querySelector("button[onclick='assignArea()']").disabled = true;
                     document.querySelector("button[onclick='assignArea()']").innerText = "배정 완료됨";
@@ -135,11 +135,11 @@
             const totalCountItem = document.createElement("li");
             totalCountItem.style.fontWeight = "bold";
             totalCountItem.style.marginTop = "10px";
-            totalCountItem.innerText = `총 배정 인원: ${totalAssigned}명 / 29명`;
+            totalCountItem.innerText = `총 배정 인원: ${totalAssigned}명 / 27명`;
             assignmentList.appendChild(totalCountItem);
 
             // 자동으로 버튼 비활성화
-            if (totalAssigned >= 29) {
+            if (totalAssigned >= 27) {
                 const assignBtn = document.querySelector("button[onclick='assignArea()']");
                 assignBtn.disabled = true;
                 assignBtn.innerText = "배정 완료됨";
