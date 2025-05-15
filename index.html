@@ -41,10 +41,21 @@
         const db = firebase.database();
 
         const initialAreas = {
-            "밥순이": 1, "음식물쓰레기": 2, "분리수거": 4, "커피자판기": 1, "회의실": 1,
-            "스튜디오": 2, "창고": 2, "냉장고": 1, "비품채우기": 1, "분쇄기": 1,
-            "바닥쓸기": 3, "바닥닦기": 2, "식당": 2, "물통비우기": 1, "제빙기": 1,
-            "5층 테라스": 1
+            "분리수거": 6,
+            "바닥 닦기": 3,
+            "바닥 쓸기": 3,
+            "분쇄기": 1,
+            "테라스": 1,
+            "커피 자판기": 3,
+            "음식물 쓰레기": 1,
+            "냉장고": 1,
+            "회의실": 1,
+            "물통 비우기": 1,
+            "밥순이": 1,
+            "대표님실 청소": 1,
+            "제빙기": 1,
+            "여자화장실": 1,
+            "남자화장실": 1
         };
 
         // 최초 1회만 초기화
@@ -70,7 +81,7 @@
                     return;
                 }
 
-                if (Object.keys(assignments).length >= 27) {
+                if (Object.keys(assignments).length >= 26) {
                     document.getElementById("result").innerText = "모든 인원이 배정되었습니다!";
                     document.querySelector("button[onclick='assignArea()']").disabled = true;
                     document.querySelector("button[onclick='assignArea()']").innerText = "배정 완료됨";
@@ -99,7 +110,7 @@
                     const assignedArea = assignments[name];
                     document.getElementById("result").innerText = `${name}님의 청소구역은 ${assignedArea}입니다.`;
 
-                    if (Object.keys(assignments).length >= 29) {
+                    if (Object.keys(assignments).length >= 26) {
                         const assignBtn = document.querySelector("button[onclick='assignArea()']");
                         assignBtn.disabled = true;
                         assignBtn.innerText = "배정 완료됨";
@@ -135,11 +146,11 @@
             const totalCountItem = document.createElement("li");
             totalCountItem.style.fontWeight = "bold";
             totalCountItem.style.marginTop = "10px";
-            totalCountItem.innerText = `총 배정 인원: ${totalAssigned}명 / 27명`;
+            totalCountItem.innerText = `총 배정 인원: ${totalAssigned}명 / 26명`;
             assignmentList.appendChild(totalCountItem);
 
             // 자동으로 버튼 비활성화
-            if (totalAssigned >= 27) {
+            if (totalAssigned >= 26) {
                 const assignBtn = document.querySelector("button[onclick='assignArea()']");
                 assignBtn.disabled = true;
                 assignBtn.innerText = "배정 완료됨";
