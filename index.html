@@ -25,7 +25,6 @@
     </div>
 
     <script>
-        // Firebase 설정
         const firebaseConfig = {
             apiKey: "AIzaSyAi89e-UbIewoENV4MH-kz_DKYJkP9Z2AA",
             authDomain: "index-8ed43.firebaseapp.com",
@@ -58,14 +57,14 @@
             "남자화장실": 1
         };
 
-        const MAX_PEOPLE = 27;
+        const MAX_PEOPLE = Object.values(initialAreas).reduce((a, b) => a + b, 0);
 
         // 최초 1회만 초기화
-        db.ref("assignments").get().then((snapshot) => {
+        db.ref("assignments").get().then(snapshot => {
             if (!snapshot.exists()) {
                 db.ref("assignments").set({});
                 db.ref("areas").set(initialAreas);
-                console.log("데이터 초기화 완료");
+                console.log("초기화 완료");
             }
         });
 
@@ -85,31 +84,48 @@
 
                 if (Object.keys(assignments).length >= MAX_PEOPLE) {
                     document.getElementById("result").innerText = "모든 인원이 배정되었습니다!";
-                    document.querySelector("button[onclick='assignArea()']").disabled = true;
-                    document.querySelector("button[onclick='assignArea()']").innerText = "배정 완료됨";
+                    const assignBtn = document.querySelector("button[onclick='assignArea()']");
+                    assignBtn.disabled = true;
+                    assignBtn.innerText = "배정 완료됨";
                     return;
                 }
 
                 db.ref("areas").transaction((areas) => {
-                    if (!areas) areas = initialAreas;
+                    if (!areas) return;
 
-                    const availableAreas = Object.keys(areas).filter(area => areas[area] > 0);
-                    if (availableAreas.length === 0) return;
+                    const available = Object.entries(areas).filter(([area, count]) => count > 0);
+                    if (available.length === 0) return;
 
-                    const randomIndex = Math.floor(Math.random() * availableAreas.length);
-                    const selectedArea = availableAreas[randomIndex];
+                    const randomIndex = Math.floor(Math.random() * available.length);
+                    const [selectedArea] = available[randomIndex];
                     areas[selectedArea]--;
 
-                    assignments[name] = selectedArea;
-                    db.ref("assignments").set(assignments);
-
+                    // areas만 트랜잭션으로 수정
                     return areas;
                 }, (error, committed, snapshot) => {
-                    if (!committed || error) {
-                        document.getElementById("result").innerText = "배정 중 문제가 발생했습니다. 다시 시도해주세요.";
+                    if (error || !committed) {
+                        document.getElementById("result").innerText = "배정 중 오류가 발생했습니다. 다시 시도해주세요.";
                         return;
                     }
-                    const assignedArea = assignments[name];
+
+                    const updatedAreas = snapshot.val();
+
+                    // 배정된 구역 파악
+                    const assignedArea = Object.keys(initialAreas).find(area => {
+                        const initial = initialAreas[area];
+                        const remaining = updatedAreas[area];
+                        const used = initial - remaining;
+                        const currentCount = Object.values(assignments).filter(v => v === area).length;
+                        return used > currentCount;
+                    });
+
+                    if (!assignedArea) {
+                        document.getElementById("result").innerText = "할당할 구역이 없습니다.";
+                        return;
+                    }
+
+                    assignments[name] = assignedArea;
+                    db.ref("assignments").set(assignments);
                     document.getElementById("result").innerText = `${name}님의 청소구역은 ${assignedArea}입니다.`;
 
                     if (Object.keys(assignments).length >= MAX_PEOPLE) {
@@ -129,29 +145,25 @@
             document.querySelector("button[onclick='assignArea()']").innerText = "청소구역 받기";
         }
 
-        db.ref("assignments").on("value", (snapshot) => {
+        db.ref("assignments").on("value", snapshot => {
             const assignments = snapshot.val() || {};
             const assignmentList = document.getElementById("assignmentList");
             assignmentList.innerHTML = "";
 
-            const areaCount = {};
-            for (let name in assignments) {
-                const area = assignments[name];
-                areaCount[area] = (areaCount[area] || 0) + 1;
-
+            for (const name in assignments) {
                 const listItem = document.createElement("li");
-                listItem.innerText = `${name}: ${area}`;
+                listItem.innerText = `${name}: ${assignments[name]}`;
                 assignmentList.appendChild(listItem);
             }
 
-            const totalAssigned = Object.keys(assignments).length;
-            const totalCountItem = document.createElement("li");
-            totalCountItem.style.fontWeight = "bold";
-            totalCountItem.style.marginTop = "10px";
-            totalCountItem.innerText = `총 배정 인원: ${totalAssigned}명 / ${MAX_PEOPLE}명`;
-            assignmentList.appendChild(totalCountItem);
+            const total = Object.keys(assignments).length;
+            const countItem = document.createElement("li");
+            countItem.style.fontWeight = "bold";
+            countItem.style.marginTop = "10px";
+            countItem.innerText = `총 배정 인원: ${total}명 / ${MAX_PEOPLE}명`;
+            assignmentList.appendChild(countItem);
 
-            if (totalAssigned >= MAX_PEOPLE) {
+            if (total >= MAX_PEOPLE) {
                 const assignBtn = document.querySelector("button[onclick='assignArea()']");
                 assignBtn.disabled = true;
                 assignBtn.innerText = "배정 완료됨";
@@ -160,4 +172,5 @@
     </script>
 </body>
 </html>
+
 
